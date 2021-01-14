@@ -48,14 +48,12 @@ def load(app):
 
                     limit = app.config["DISCORD_WEBHOOK_LIMIT"]
                     if limit and num_solves > int(limit):
-                        return result 
+                        return result
                     webhook = DiscordWebhook(url=app.config['DISCORD_WEBHOOK_URL'])
 
                     user = get_current_user()
-                    team = get_current_team()
 
                     format_args = {
-                        "team": sanitize(team.name),
                         "user": sanitize(user.name),
                         "challenge": sanitize(challenge.name),
                         "solves": num_solves,
@@ -71,4 +69,4 @@ def load(app):
         return wrapper
 
     app.view_functions['api.challenges_challenge_attempt'] = challenge_attempt_decorator(app.view_functions['api.challenges_challenge_attempt'])
- 
+
