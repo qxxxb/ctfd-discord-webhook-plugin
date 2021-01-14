@@ -7,6 +7,7 @@ from CTFd.utils.user import get_current_team, get_current_user
 from discord_webhook import DiscordWebhook, DiscordEmbed
 from functools import wraps
 from .config import config
+import re
 
 ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
 sanreg = re.compile(r'(~|!|@|#|\$|%|\^|&|\*|\(|\)|\_|\+|\`|-|=|\[|\]|;|\'|,|\.|\/|\{|\}|\||:|"|<|>|\?)')
