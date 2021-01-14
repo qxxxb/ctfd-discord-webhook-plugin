@@ -9,15 +9,21 @@ from functools import wraps
 from .config import config
 import re
 
-ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
-sanreg = re.compile(r'(~|!|@|#|\$|%|\^|&|\*|\(|\)|\_|\+|\`|-|=|\[|\]|;|\'|,|\.|\/|\{|\}|\||:|"|<|>|\?)')
-sanitize = lambda m: sanreg.sub(r'\1',m)
+ordinal = lambda n: "%d%s" % (
+    n,
+    "tsnrhtdd"[(n // 10 % 10 != 1) * (n % 10 < 4) * n % 10 :: 4],
+)
+sanreg = re.compile(
+    r'(~|!|@|#|\$|%|\^|&|\*|\(|\)|\_|\+|\`|-|=|\[|\]|;|\'|,|\.|\/|\{|\}|\||:|"|<|>|\?)'
+)
+sanitize = lambda m: sanreg.sub(r"\1", m)
+
 
 def load(app):
     config(app)
     TEAMS_MODE = ctfd_config.is_teams_mode()
 
-    if not app.config['DISCORD_WEBHOOK_URL']:
+    if not app.config["DISCORD_WEBHOOK_URL"]:
         print("No DISCORD_WEBHOOK_URL set! Plugin disabled.")
         return
     print("Loading plugin discord webhook!!")
@@ -32,25 +38,31 @@ def load(app):
 
             if isinstance(result, JSONMixin):
                 data = result.json
-                if isinstance(data, dict) and data.get("success") == True and isinstance(data.get("data"), dict) and data.get("data").get("status") == "correct":
+                if (
+                    isinstance(data, dict)
+                    and data.get("success") == True
+                    and isinstance(data.get("data"), dict)
+                    and data.get("data").get("status") == "correct"
+                ):
                     if request.content_type != "application/json":
                         request_data = request.form
                     else:
                         request_data = request.get_json()
+
                     challenge_id = request_data.get("challenge_id")
-                    challenge = Challenges.query.filter_by(id=challenge_id).first_or_404()
+                    challenge = Challenges.query.filter_by(
+                        id=challenge_id
+                    ).first_or_404()
+
                     solvers = Solves.query.filter_by(challenge_id=challenge.id)
-                    if TEAMS_MODE:
-                        solvers = solvers.filter(Solves.team.has(hidden=False))
-                    else:
-                        solvers = solvers.filter(Solves.user.has(hidden=False))
+                    solvers = solvers.filter(Solves.user.has(hidden=False))
                     num_solves = solvers.count()
 
-                    limit = app.config["DISCORD_WEBHOOK_LIMIT"]
+                    limit = app.config["DISCORD_WEBHOOK_FIRST_SOLVES"]
                     if limit and num_solves > int(limit):
                         return result
-                    webhook = DiscordWebhook(url=app.config['DISCORD_WEBHOOK_URL'])
 
+                    webhook = DiscordWebhook(url=app.config["DISCORD_WEBHOOK_URL"])
                     user = get_current_user()
 
                     format_args = {
@@ -58,15 +70,22 @@ def load(app):
                         "challenge": sanitize(challenge.name),
                         "solves": num_solves,
                         "fsolves": ordinal(num_solves),
-                        "category": sanitize(challenge.category)
+                        "category": sanitize(challenge.category),
+                        "points": challenge.value,
                     }
 
-                    message = app.config['DISCORD_WEBHOOK_MESSAGE'].format(**format_args)
+                    message = app.config["DISCORD_WEBHOOK_MESSAGE"].format(
+                        **format_args
+                    )
                     embed = DiscordEmbed(description=message)
                     webhook.add_embed(embed)
                     webhook.execute()
             return result
+
         return wrapper
 
-    app.view_functions['api.challenges_challenge_attempt'] = challenge_attempt_decorator(app.view_functions['api.challenges_challenge_attempt'])
-
+    app.view_functions[
+        "api.challenges_challenge_attempt"
+    ] = challenge_attempt_decorator(
+        app.view_functions["api.challenges_challenge_attempt"]
+    )
